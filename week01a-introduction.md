@@ -160,7 +160,7 @@ Wikiもあるのでご参考に、といった内容。
 
 --------------------------------------------------------
 
-※「SICP読書ノート」の目次は[こちら](/entry/coursera-ml/index)
+※Coursera Machine Learining の目次は[こちら](/entry/coursera-ml/index)
 
 
 <script type="text/x-mathjax-config">
