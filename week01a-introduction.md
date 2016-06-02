@@ -74,12 +74,9 @@ Discussion Forumの使い方について。
 ### Supervised Learining (動画)
 教師あり学習(Supervised Learning)について。
 
-- 住宅価格の予測の例。敷地面積と価格のいくつかのデータセットがあって
-  どう予測するか 
-- 教師あり学習とは、データセットを正しい答えして与え、
-  未知のパラメータをどう予測さえるか
+- 住宅価格の予測の例。敷地面積と価格のいくつかのデータセットがあってどう予測するか 
+- 教師あり学習とは、データセットを正しい答えして与え、未知のパラメータをどう予測さえるか
 - より専門的に言うと回帰問題(Regression)
-
 - 別の例として、カルテの情報を見て乳がんが悪性か良性かの予測
 - 腫瘍のサイズで悪性か良性かの見分けがつくか
 - より専門的に言うと分類問題(Classification)
@@ -160,13 +157,9 @@ Wikiもあるのでご参考に、といった内容。
 
 --------------------------------------------------------
 
-※Coursera Machine Learining の目次は[こちら](/entry/coursera-ml/index)
+※ Coursera Machine Learining の目次は[こちら](/entry/coursera-ml/index)
 
 
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({ tex2jax: { inlineMath: [['$','$'], ["\\(","\\)"]] } });
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
 </script>
-<script type="text/javascript"
-  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML">
-</script>
-<meta http-equiv="X-UA-Compatible" CONTENT="IE=EmulateIE7" />
