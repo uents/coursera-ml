@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-# Computing the cost J
-def compute_cost_multi(X, y, theta):
-    m = len(y)
-    J = 1/(2 * m) * np.sum(np.power(np.dot(X, theta) - y, 2))
-    return J
+import sys,os
+sys.path.append(
+    os.path.dirname(os.path.abspath(__file__)) + '/../linear_regression')
+import linear_regression as lr
 
-# Gradient Descent
+
+def compute_cost_multi(X, y, theta):
+    return lr.compute_cost(X, y, theta)
+
 def gradient_descent_multi(X, y, theta, alpha, num_iters):
-    m = len(y)
-    J_history = []
-    for iter in range(num_iters):
-        theta = theta - alpha * (1/m) * np.dot(X.T, (np.dot(X, theta) - y))
-        J = compute_cost_multi(X, y, theta)
-        J_history.append(J)
-    return theta, J_history
+    return lr.gradient_descent(X, y, theta, alpha, num_iters)
