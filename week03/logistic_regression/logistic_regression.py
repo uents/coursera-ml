@@ -10,37 +10,76 @@ def safe_log(x, minval=1e-12):
 
 def compute_cost(theta, X, y):
     """
-    Compute the cost J
+    Compute the cost value
     
-    Args:
-        theta (np.array n x 1) : parameters of hypothesis function
-        X (np.array m x n)     : input dataset
-        y (np.array m x 1)     : output dataset
-    Returns:
-        float : cost value
+    Parameters
+    ----------
+    theta : array-like, shape (n_dim, 1)
+        parameters of hypothesis function
+    X : array-like, shape (n_examples, n_dim)
+        input dataset
+    y : array-like, shape (n_examples, 1)
+        output dataset
+
+    Returns
+    -------
+    J : float
+        cost value
     """
-    m = len(y)
+    m = y.shape[0]
+    n = theta.shape[0]
+    assert(X.shape == (m, n))
+    
     h = sigmoid(np.dot(X, theta))
     J = 1/m * np.sum(-y * safe_log(h) - (1-y) * safe_log(1-h))
     return J
 
 def compute_grad(theta, X, y):
     """
-    Compute the gradients of the cost
+    Compute the gradients of cost function
     
-    Args:
-        theta (np.array n x 1) : parameters of hypothesis function
-        X (np.array m x n)     : input dataset
-        y (np.array m x 1)     : output dataset
-    Returns:
-        np.array n x 1 : gradient values
+    Parameters
+    ----------
+    theta : array-like, shape (n_dim, 1)
+        parameters of hypothesis function
+    X : array-like, shape (n_examples, n_dim)
+        input dataset
+    y : array-like, shape (n_examples, 1)
+        output dataset
+    
+    Returns
+    -------
+    grad : array-like, shape (n_dim, 1)
+        gradient values
     """
-    m = len(y)
+    m = y.shape[0]
+    n = theta.shape[0]
+    assert(X.shape == (m, n))
+
     h = sigmoid(np.dot(X, theta))
     grad = 1/m * np.dot(X.T, (h - y))
     return grad
 
-def compute_theta(initial_theta, X, y):
+def optimize_theta(initial_theta, X, y):
+    """
+    Optimize the parameters of hypothesis function with gradient descent
+    
+    Parameters
+    ----------
+    initial_theta : array-like, shape (n_dim, 1)
+        initial parameters of hypothesis function
+    X : array-like, shape (n_examples, n_dim)
+        input dataset
+    y : array-like, shape (n_examples, 1)
+        output dataset
+    
+    Returns
+    -------
+    theta : array-like, shape (n_dim, 1)
+        optimized parameters of hypothesis function
+    J : float
+        cost value
+    """
     def _compute_cost(theta, X, y):
         t = theta.reshape(len(theta), 1)
         J = compute_cost(t, X, y)
@@ -49,8 +88,10 @@ def compute_theta(initial_theta, X, y):
     def _compute_grad(theta, X, y):
         t = theta.reshape(len(theta), 1)
         grad = compute_grad(t, X, y)
-        return grad.flatten()
+        return grad.ravel()
     
-    theta = optimize.fmin_cg(_compute_cost, fprime=_compute_grad,
-                             x0=initial_theta, args=(X, y))
-    return theta
+    res = optimize.minimize(
+        method='BFGS', fun=_compute_cost, jac=_compute_grad,
+        x0=initial_theta, args=(X, y), options={'maxiter': 400})
+
+    return res.x, res.fun
