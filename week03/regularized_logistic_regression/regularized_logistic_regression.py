@@ -8,6 +8,12 @@ sys.path.append(
 import logistic_regression as lr
 
 
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def safe_log(x, minval=1e-12):
+    return np.log(x.clip(min=minval))
+
 def map_feature(X1, X2):
     """
     Mapping function to polynomial features
@@ -128,25 +134,42 @@ def optimize_theta(initial_theta, X, y, lmd):
 
     return res.x, res.fun
 
-def compute_train_accuracy(theta, X, y):
+def predict(theta, X):
+    """
+    Predict classification
+
+    Parameters
+    ----------
+    thetas : array-like, shape (n_dim, 1)
+        parameters
+    X : array-like, shape (n_examples, n_dim)
+        input dataset
+    
+    Returns
+    -------
+    ypreds : array-like, shape (n_examples, 1)
+        predicted classes
+    """
+    assert(X.shape[1] == theta.shape[0])
+
+    preds = [1 if s >= 0.5 else 0 for s in sigmoid(np.dot(X, theta))]
+    return np.array(preds).reshape(len(preds), 1)
+
+def compute_train_accuracy(ypreds, y):
     """
     Compute the training accuracy
     
     Parameters
     ----------
-    theta : array-like, shape (n_dim, 1)
-        parameters of hypothesis function
-    X : array-like, shape (n_examples, n_dim)
-        input dataset
+    ypreds : array-like, shape (n_examples, 1)
+        predicted dataset
     y : array-like, shape (n_examples, 1)
-        output dataset
+        correct dataset
     
     Returns
     -------
     accuracy : float
-        training accuracy [0-100]
+        training accuracy
     """
-    assert(X.shape == (y.shape[0], theta.shape[0]))
-                       
-    preds = [1 if s >= 0.5 else 0 for s in lr.sigmoid(np.dot(X, theta))]
-    return np.mean(preds == y.ravel()) * 100.
+    assert(ypreds.shape == y.shape)
+    return np.mean(ypreds.ravel() == y.ravel()) * 100.
