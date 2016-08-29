@@ -5,7 +5,7 @@ from scipy import optimize
 import sys,os
 sys.path.append(
     os.path.dirname(os.path.abspath(__file__))
-    + '/../../week03/regularized_logistic_regression')
+    + '/../week03/regularized_logistic_regression')
 import regularized_logistic_regression as lr
 
 
@@ -78,14 +78,14 @@ def predict(thetas, X):
     Returns
     -------
     ypreds : array-like, shape (n_examples, 1)
-        predicted classes
+        prediction classes and values
     """
     X = np.c_[np.ones((X.shape[0], 1)), X]
     assert(X.shape[1] == thetas.shape[1])
 
-    pred_values = sigmoid((np.dot(X, thetas.T)))
-    pred_classes = [(np.argmax(p) + 1) for p in pred_values]
-    return np.array(pred_classes).reshape(len(pred_classes), 1)
+    values = sigmoid((np.dot(X, thetas.T)))
+    preds = [{'class': (np.argmax(p) + 1), 'value': np.max(p)} for p in values]
+    return preds
 
 def compute_train_accuracy(ypreds, y):
     """

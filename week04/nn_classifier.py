@@ -20,7 +20,7 @@ def predict(theta1, theta2, X):
     Returns
     -------
     ypreds : array-like, shape (n_examples, 1)
-        predicted classes
+        prediction classes and values
     """
     assert(X.shape[1] + 1 == theta1.shape[1])
     assert(theta1.shape[0] + 1 == theta2.shape[1])
@@ -31,8 +31,8 @@ def predict(theta1, theta2, X):
     a2 = np.c_[np.ones((m, 1)), z2]
     z3 = sigmoid(np.dot(a2, theta2.T))
 
-    pred_classes = [(np.argmax(p) + 1) for p in z3]
-    return np.array(pred_classes).reshape(len(pred_classes), 1)
+    preds = [{'class': (np.argmax(p) + 1), 'value': np.max(p)} for p in z3]
+    return preds
 
 def compute_train_accuracy(ypreds, y):
     """
