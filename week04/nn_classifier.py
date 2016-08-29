@@ -27,11 +27,12 @@ def predict(theta1, theta2, X):
 
     m = X.shape[0]
     a1 = np.c_[np.ones((m, 1)), X]
-    z2 = sigmoid(np.dot(a1, theta1.T))
-    a2 = np.c_[np.ones((m, 1)), z2]
-    z3 = sigmoid(np.dot(a2, theta2.T))
+    z2 = np.dot(a1, theta1.T)
+    a2 = sigmoid(z2)
+    z3 = np.dot(np.c_[np.ones((m, 1)), a2], theta2.T)
+    a3 = sigmoid(z3)
 
-    preds = [{'class': (np.argmax(p) + 1), 'value': np.max(p)} for p in z3]
+    preds = [{'class': (np.argmax(p) + 1), 'value': np.max(p)} for p in a3]
     return preds
 
 def compute_train_accuracy(ypreds, y):
