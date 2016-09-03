@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 
-def compute_cost(theta, X, y):
+def cost_function(theta, X, y):
     """
-    Compute the cost value
+    Cost function
     
     Parameters
     ----------
@@ -57,7 +57,7 @@ def gradient_descent(theta, X, y, alpha, num_iters):
     J_history = []
     for iter in range(num_iters):
         theta = theta - alpha * (1/m) * np.dot(X.T, (np.dot(X, theta) - y))
-        J = compute_cost(theta, X, y)
+        J = cost_function(theta, X, y)
         J_history.append(J)
     return theta, J_history
 
