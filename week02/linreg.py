@@ -28,7 +28,7 @@ def cost_function(theta, X, y):
 
 def gradient_descent(theta, X, y, alpha, num_iters):
     """
-    Compute the gradients of cost function
+    Optimize parameters of hypotheiis function with gradient descent
     
     Parameters
     ----------
