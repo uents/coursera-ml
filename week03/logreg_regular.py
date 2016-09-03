@@ -38,7 +38,7 @@ def map_feature(X1, X2):
 
 def cost_function_reg(theta, X, y, lmd):
     """
-    Cost function and the gradients with regularization
+    Cost function and gradient with regularization
     
     Parameters
     ----------
@@ -56,7 +56,7 @@ def cost_function_reg(theta, X, y, lmd):
     J : float
         cost value
     D : array-like, shape (n_dim, 1)
-        gradients
+        gradient
     """
     m = y.shape[0]
     n = theta.shape[0]

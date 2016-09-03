@@ -9,7 +9,7 @@ from common import *
 
 def cost_function(theta, X, y):
     """
-    Cost function and the gradients
+    Cost function and gradient
     
     Parameters
     ----------
@@ -25,7 +25,7 @@ def cost_function(theta, X, y):
     J : float
         cost value
     D : array-like, shape (n_dim, 1)
-        gradients
+        gradient
     """
     m = y.shape[0]
     n = theta.shape[0]
