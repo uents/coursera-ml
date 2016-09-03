@@ -2,17 +2,12 @@
 import numpy as np
 from scipy import optimize
 
-import sys,os
-sys.path.append(
-    os.path.dirname(os.path.abspath(__file__)) + '/../logistic_regression')
-import logistic_regression as lr
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../common/')
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/')
+from common import *
+from logreg import *
 
-
-def sigmoid(z):
-    return 1 / (1 + np.exp(-z))
-
-def safe_log(x, minval=1e-12):
-    return np.log(x.clip(min=minval))
 
 def map_feature(X1, X2):
     """
@@ -20,9 +15,9 @@ def map_feature(X1, X2):
     
     Parameters
     ----------
-    X1 : array-like, shape (n_examples, n_dim)
+    X1 : array-like, shape (n_examples, 1)
         input feature 1
-    X2 : array-like, shape (n_examples, n_dim)
+    X2 : array-like, shape (n_examples, 1)
         input feature 2
 
     Returns:
@@ -37,13 +32,13 @@ def map_feature(X1, X2):
     out = np.ones((m, 1))
     for i in range(1, degree+1):
         for j in range (0, i + 1):
-            column = (np.power(X1, i-j) * np.power(X2, j)).reshape((m, 1))
+            column = np.power(X1, i-j) * np.power(X2, j)
             out = np.c_[out, column]
     return out
 
-def compute_cost_reg(theta, X, y, lmd):
+def cost_function_reg(theta, X, y, lmd):
     """
-    Compute the cost value with regularization
+    Cost function and the gradients with regularization
     
     Parameters
     ----------
@@ -60,43 +55,19 @@ def compute_cost_reg(theta, X, y, lmd):
     -------
     J : float
         cost value
+    D : array-like, shape (n_dim, 1)
+        gradients
     """
     m = y.shape[0]
     n = theta.shape[0]
     assert(X.shape == (m, n))
     
-    J = lr.compute_cost(theta, X, y) + lmd/m * np.sum(np.power(theta[1:], 2))
-    return J
+    J, D = cost_function(theta, X, y)
+    J += lmd/m * np.sum(np.power(theta[1:], 2))
+    D[1:] += lmd/m * theta[1:]
+    return J, D
 
-def compute_grad_reg(theta, X, y, lmd):
-    """
-    Compute the gradients of cost function with regularization
-    
-    Parameters
-    ----------
-    theta : array-like, shape (n_dim, 1)
-        parameters of hypothesis function
-    X : array-like, shape (n_examples, n_dim)
-        input dataset
-    y : array-like, shape (n_examples, 1)
-        output dataset
-    lmd : float
-        regularization coefficient
-    
-    Returns
-    -------
-    grad : array-like, shape (n_dim, 1)
-        gradient values
-    """
-    m = y.shape[0]
-    n = theta.shape[0]
-    assert(X.shape == (m, n))
-    
-    grad = lr.compute_grad(theta, X, y)
-    grad[1:] = grad[1:] + lmd/m * theta[1:]
-    return grad
-
-def optimize_theta(initial_theta, X, y, lmd):
+def optimize_params_reg(initial_theta, X, y, lmd):
     """
     Optimize the parameters of hypothesis function with gradient descent
     
@@ -118,21 +89,19 @@ def optimize_theta(initial_theta, X, y, lmd):
     J : float
         cost value
     """
-    def _compute_cost(theta, X, y, lmd):
-        t = theta.reshape(len(theta), 1)
-        J = compute_cost_reg(t, X, y, lmd)
-        return J
-    
-    def _compute_grad(theta, X, y, lmd):
-        t = theta.reshape(len(theta), 1)
-        grad = compute_grad_reg(t, X, y, lmd)
-        return grad.ravel()
-    
-    res = optimize.minimize(
-        method='BFGS', fun=_compute_cost, jac=_compute_grad,
-        x0=initial_theta, args=(X, y, lmd), options={'maxiter': 400})
+    def _cost_function(theta, X, y, lmd, J_history):
+        t = theta.reshape(-1, 1)
+        J, D = cost_function_reg(t, X, y, lmd)
+        J_history.append(J)
+        return J, D.ravel()
 
-    return res.x, res.fun
+    J_history = []
+    res = optimize.minimize(
+        method='BFGS', fun=_cost_function, jac=True,
+        x0=initial_theta, args=(X, y, lmd, J_history),
+        options={'maxiter': 400})
+
+    return res.x, J_history
 
 def predict(theta, X):
     """
@@ -153,7 +122,7 @@ def predict(theta, X):
     assert(X.shape[1] == theta.shape[0])
 
     preds = [1 if s >= 0.5 else 0 for s in sigmoid(np.dot(X, theta))]
-    return np.array(preds).reshape(len(preds), 1)
+    return np.array(preds).reshape(-1, 1)
 
 def compute_train_accuracy(ypreds, y):
     """
