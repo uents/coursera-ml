@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from scipy import optimize
+import scipy.optimize
 
 import sys,os
-sys.path.append(
-    os.path.dirname(os.path.abspath(__file__))
-    + '/../week03/regularized_logistic_regression')
-import regularized_logistic_regression as lr
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../common/')
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../week03/')
+from common import *
+from logreg_regular import *
 
 
-def sigmoid(z):
-    return 1 / (1 + np.exp(-z))
-
-def optimize_thetas(X, y, num_labels, lmd):
+def optimize_params(X, y, num_labels, lmd):
     """
     Optimize the parameters
     
@@ -34,34 +31,33 @@ def optimize_thetas(X, y, num_labels, lmd):
     """
     assert(X.shape[0] == y.shape[0])
 
-    def _compute_cost(theta, X, y, lmd):
-        _t = theta.reshape(len(theta), 1)
-        _y = y.reshape(len(y), 1)
-        J = lr.compute_cost_reg(_t, X, _y, lmd)
-        return J
+    def _cost_function(theta, X, y, lmd, j_hist):
+        t = theta.reshape(-1, 1)
+        J, D = cost_function_reg(t, X, y, lmd)
+        j_hist.append(J)
+        return J, D.ravel()
 
-    def _compute_grad(theta, X, y, lmd):
-        _t = theta.reshape(len(theta), 1)
-        _y = y.reshape(len(y), 1)
-        grad = lr.compute_grad_reg(_t, X, _y, lmd)
-        return grad.ravel()
+    m, n = X.shape
+    num_labels = len(np.unique(y))
 
-    m = X.shape[0]
-    n = X.shape[1]
-
-    thetas = np.zeros((num_labels, n + 1))
     X = np.c_[np.ones((m, 1)), X]
+    thetas = np.zeros((num_labels, n + 1))
     initial_theta = np.zeros((n + 1, 1))
+    J_history = {}
 
-    for label in range(1, num_labels+1):
-        _y = np.array([1 if c == label else 0 for c in y])
-        print('training : label', label, '...')
-        res = optimize.minimize(
-            method='BFGS', fun=_compute_cost, jac=_compute_grad,
-            x0=initial_theta, args=(X, _y, lmd), options={'maxiter': 50})
-        thetas[label-1] = res.x
+    for label in np.unique(y):
+        _y = np.array([1 if l == label else 0 for l in y]).reshape(-1, 1)
+        j_hist = []
+        res = scipy.optimize.minimize(
+            method='BFGS', fun=_cost_function, jac=True,
+            x0=initial_theta, args=(X, _y, lmd, j_hist),
+            options={'maxiter': 50})
 
-    return thetas
+        thetas[label] = res.x
+        print('... training : label=' + str(label) + ' J=' + str(j_hist[-1]))
+        J_history.update({str(label): j_hist})
+    
+    return thetas, J_history
 
 
 def predict(thetas, X):
@@ -84,7 +80,7 @@ def predict(thetas, X):
     assert(X.shape[1] == thetas.shape[1])
 
     values = sigmoid((np.dot(X, thetas.T)))
-    preds = [{'class': (np.argmax(p) + 1), 'value': np.max(p)} for p in values]
+    preds = [{'class': np.argmax(p), 'value': np.max(p)} for p in values]
     return preds
 
 def compute_train_accuracy(ypreds, y):
