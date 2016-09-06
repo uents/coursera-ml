@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from scipy import optimize
+import scipy.optimize
 
 import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../common/')
@@ -86,8 +86,8 @@ def optimize_params_reg(initial_theta, X, y, lmd):
     -------
     theta : array-like, shape (n_dim, 1)
         optimized parameters of hypothesis function
-    J : float
-        cost value
+    J_history : list (n_iterations)
+        history of cost value
     """
     def _cost_function(theta, X, y, lmd, J_history):
         t = theta.reshape(-1, 1)
@@ -96,7 +96,7 @@ def optimize_params_reg(initial_theta, X, y, lmd):
         return J, D.ravel()
 
     J_history = []
-    res = optimize.minimize(
+    res = scipy.optimize.minimize(
         method='BFGS', fun=_cost_function, jac=True,
         x0=initial_theta, args=(X, y, lmd, J_history),
         options={'maxiter': 400})
