@@ -38,7 +38,7 @@ def cost_function(theta, X, y):
 
 def optimize_params(initial_theta, X, y):
     """
-    Optimize the parameters of hypothesis function with gradient descent
+    Optimize the parameters of hypothesis function
     
     Parameters
     ----------
@@ -56,16 +56,22 @@ def optimize_params(initial_theta, X, y):
     J_history : list (n_iterations)
         history of cost value
     """
+    J_history = []; J = 0.
+    
     def _cost_function(theta, X, y, J_history):
+        nonlocal J
         t = theta.reshape(-1, 1)
         J, D = cost_function(t, X, y)
-        J_history.append(J)
         return J, D.ravel()
+
+    def _callback(theta):
+        nonlocal J_history, J
+        J_history.append(J)
 
     J_history = []
     res = scipy.optimize.minimize(
         method='BFGS', fun=_cost_function, jac=True,
         x0=initial_theta, args=(X, y, J_history),
-        options={'maxiter': 400})
+        options={'maxiter': 400}, callback=_callback)
 
     return res.x, J_history
