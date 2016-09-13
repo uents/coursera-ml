@@ -28,6 +28,8 @@ def optimize_params(X, y, num_labels, lmd):
     -------
     thetas : array-like, shape (n_dim, 1)
         optimized parameters of each class
+    J_hists : dictionary
+        history-set of cost value of leaning each class
     """
     assert(X.shape[0] == y.shape[0])
 
