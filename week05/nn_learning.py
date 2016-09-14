@@ -4,9 +4,7 @@ from scipy import optimize
 
 import sys,os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../common/')
-sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../week03/')
 from common import *
-from logreg_regular import *
 
 
 def sigmoid_gradient(z):
@@ -78,6 +76,15 @@ def cost_function(theta1, theta2, X, y, lmd):
     return J, D1, D2
 
 
+def flatten_theta(theta1, theta2):
+    return np.r_[theta1.ravel(), theta2.ravel()]
+
+def reshape_theta(thetas, num_input_unit, num_hidden_unit, num_labels):
+    brk = num_hidden_unit * (num_input_unit + 1)
+    theta1 = thetas[0:brk].reshape(num_hidden_unit, num_input_unit + 1)
+    theta2 = thetas[brk:].reshape(num_labels, num_hidden_unit + 1)
+    return theta1, theta2
+
 def optimize_params(initial_theta1, initial_theta2, X, y, lmd):
     """
     Optimize the parameters
@@ -105,17 +112,10 @@ def optimize_params(initial_theta1, initial_theta2, X, y, lmd):
         history of cost value
     """
 
-    def _reshape_theta(thetas, num_input_unit, num_hidden_unit, num_labels):
-        brk = num_hidden_unit * (num_input_unit + 1)
-        theta1 = thetas[0:brk].reshape(num_hidden_unit, num_input_unit + 1)
-        theta2 = thetas[brk:].reshape(num_labels, num_hidden_unit + 1)
-        return theta1, theta2
-
     def _cost_function(thetas, num_input_unit, num_hidden_unit, X, y, lmd):
         nonlocal J
         num_labels = len(np.unique(y))
-        t1, t2 = _reshape_theta(thetas, num_input_unit,
-                                num_hidden_unit, num_labels)
+        t1, t2 = reshape_theta(thetas, num_input_unit, num_hidden_unit, num_labels)
         J, D1, D2 = cost_function(t1, t2, X, y, lmd)
         return J, np.r_[D1.ravel(), D2.ravel()]
 
@@ -125,19 +125,19 @@ def optimize_params(initial_theta1, initial_theta2, X, y, lmd):
 
     J_history = []; J = 0
     
-    num_labels = len(np.unique(y))
     num_input_unit = initial_theta1.shape[1] - 1
     num_hidden_unit = initial_theta2.shape[1] - 1
-    initial_thetas = np.r_[initial_theta1.ravel(), initial_theta2.ravel()]
+    num_labels = len(np.unique(y))
 
+    initial_thetas = flatten_theta(initial_theta1, initial_theta2)
     args = (num_input_unit, num_hidden_unit, X, y, lmd)
+
     res = optimize.minimize(
         method='CG', fun=_cost_function, jac=True,
         x0=initial_thetas, args=args,
         options={'maxiter': 50, 'disp': True}, callback=_callback)
 
-    theta1, theta2 = _reshape_theta(
-        res.x, num_input_unit, num_hidden_unit, num_labels)
+    theta1, theta2 = reshape_theta(res.x, num_input_unit, num_hidden_unit, num_labels)
     return theta1, theta2, J_history
 
 
@@ -190,3 +190,18 @@ def compute_train_accuracy(ypreds, y):
     """
     assert(ypreds.shape == y.shape)
     return np.mean(ypreds.ravel() == y.ravel()) * 100.
+
+
+def compute_numerical_gradient(func, thetas):
+    numgrad = np.zeros(thetas.shape)
+    perturb = np.zeros(thetas.shape)
+    e = 1e-4
+
+    for p in range(len(thetas)):
+        perturb[p] = e
+        loss1, d1, d2 = func(thetas - perturb)
+        loss2, d1, d2 = func(thetas + perturb)
+        numgrad[p] = (loss2 - loss1) / (2*e)
+        perturb[p] = 0
+
+    return numgrad
