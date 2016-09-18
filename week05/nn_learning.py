@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from scipy import optimize
+import scipy.optimize
+from collections import namedtuple
 
 import sys,os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../common/')
@@ -10,19 +11,34 @@ from common import *
 def sigmoid_gradient(z):
     return sigmoid(z) * (1 - sigmoid(z))
 
-def rand_initialize_weights(shape, epsilon_init=0.12):
+def append_weights(theta1, theta2):
+    return np.r_[theta1.ravel(), theta2.ravel()]
+
+def divide_weights(thetas, spec):
+    brk = spec.num_hid_units * (spec.num_in_units + 1)
+    theta1 = thetas[0:brk].reshape(spec.num_hid_units, spec.num_in_units + 1)
+    theta2 = thetas[brk:].reshape(spec.num_out_units, spec.num_hid_units + 1)
+    return theta1, theta2
+
+def rand_weights(shape, epsilon_init=0.12):
     return np.random.rand(shape[0], shape[1]) * 2 * epsilon_init - epsilon_init
 
-def cost_function(theta1, theta2, X, y, lmd):
+def initialize_weights(spec):
+    theta1 = rand_weights((spec.num_hid_units, spec.num_in_units+1))
+    theta2 = rand_weights((spec.num_out_units, spec.num_hid_units+1))
+    return append_weights(theta1, theta2)
+
+
+def cost_function(thetas, spec, X, y, lmd):
     """
     Cost function and gradient
     
     Parameters
     ----------
-    theta1 : array-like, shape (n_hidden_unit, n_dim+1)
-        parameters of input layer
-    theta2 : array-like, shape (n_classes, n_hidden_unit+1)
-        parameters of hidden layer
+    thetas : array-like, num_units
+        weights of input and hidden layers
+    spec : namedtuple
+        layer specification
     X : array-like, shape (n_examples, n_dim)
         input dataset
     y : array-like, shape (n_examples, 1)
@@ -32,26 +48,25 @@ def cost_function(theta1, theta2, X, y, lmd):
     -------
     J : float
         cost value
-    D1 : array-like, shape (n_hidden_unit, n_dim+1)
-        gradient of parameter of input layer
-    D2 : array-like, shape (n_classes, n_hidden_unit+1)
-        gradient of parameter of hidden layer
+    D : array-like, num_units
+        gradient of weights of input and hidden layers
     """
     assert(X.shape[0] == y.shape[0])
-    assert(X.shape[1] + 1 == theta1.shape[1])
-    assert(theta1.shape[0] + 1 == theta2.shape[1])
+    assert(X.shape[1] == spec.num_in_units)
 
     m, n = X.shape
-    num_labels = len(np.unique(y))
+    k = spec.num_out_units
+
+    # device weights
+    theta1, theta2 = divide_weights(thetas, spec)
 
     # outputs with 1-of-K notation
-    Y = (np.identity(num_labels)[y,:])[:,0,:]
+    Y = (np.identity(k)[y,:])[:,0,:]
 
     # forward propagation
-    m = X.shape[0]
-    a1 = np.c_[np.ones((m,1)), X]
+    a1 = np.c_[np.ones((m, 1)), X]
     z2 = np.dot(a1, theta1.T)
-    a2 = np.c_[np.ones((m,1)), sigmoid(z2)]
+    a2 = np.c_[np.ones((m, 1)), sigmoid(z2)]
     z3 = np.dot(a2, theta2.T)
     a3 = sigmoid(z3)
     assert(Y.shape == a3.shape)
@@ -73,28 +88,19 @@ def cost_function(theta1, theta2, X, y, lmd):
     D2 = 1/m * Delta3
     D2[:,1:] += lmd/m * theta2[:,1:]
 
-    return J, D1, D2
+    return J, append_weights(D1, D2)
 
 
-def flatten_theta(theta1, theta2):
-    return np.r_[theta1.ravel(), theta2.ravel()]
-
-def reshape_theta(thetas, num_input_unit, num_hidden_unit, num_labels):
-    brk = num_hidden_unit * (num_input_unit + 1)
-    theta1 = thetas[0:brk].reshape(num_hidden_unit, num_input_unit + 1)
-    theta2 = thetas[brk:].reshape(num_labels, num_hidden_unit + 1)
-    return theta1, theta2
-
-def optimize_params(initial_theta1, initial_theta2, X, y, lmd):
+def optimize_weights(initial_thetas, spec, X, y, lmd):
     """
-    Optimize the parameters
+    Optimize the weights
     
     Parameters
     ----------
-    initial_theta1 : array-like, shape (n_hidden_units, n_dim+1)
-        initial parameters of input layer
-    initial_theta2 : array-like, shape (n_labels, n_hidden_units+1)
-        initial parameters of hidden layer
+    initial_thetas : array-like, num_units
+        initial weights of input and hidden layers
+    spec : namedtuple
+        layer specification
     X : array-like, shape (n_examples, n_dim)
         input dataset
     y : array-like, shape (n_examples, 1)
@@ -104,20 +110,16 @@ def optimize_params(initial_theta1, initial_theta2, X, y, lmd):
     
     Returns
     -------
-    theta1 : array-like, shape (n_hidden_units, n_dim+1)
-        optimized parameters of input layer
-    theta2 : array-like, shape (n_labels, n_hidden_units+1)
-        optimized parameters of hidden layer
-    J_history : list (n_iterations)
+    thetas : array-like, num_units
+        optimized weights of input and hidden layers
+    J_history : list, n_iterations
         history of cost value
     """
 
-    def _cost_function(thetas, num_input_unit, num_hidden_unit, X, y, lmd):
+    def _cost_function(thetas, spec, X, y, lmd):
         nonlocal J
-        num_labels = len(np.unique(y))
-        t1, t2 = reshape_theta(thetas, num_input_unit, num_hidden_unit, num_labels)
-        J, D1, D2 = cost_function(t1, t2, X, y, lmd)
-        return J, np.r_[D1.ravel(), D2.ravel()]
+        J, D, = cost_function(thetas, spec, X, y, lmd)
+        return J, D
 
     def _callback(thetas):
         nonlocal J_history, J
@@ -125,32 +127,22 @@ def optimize_params(initial_theta1, initial_theta2, X, y, lmd):
 
     J_history = []; J = 0
     
-    num_input_unit = initial_theta1.shape[1] - 1
-    num_hidden_unit = initial_theta2.shape[1] - 1
-    num_labels = len(np.unique(y))
-
-    initial_thetas = flatten_theta(initial_theta1, initial_theta2)
-    args = (num_input_unit, num_hidden_unit, X, y, lmd)
-
-    res = optimize.minimize(
+    res = scipy.optimize.minimize(
         method='CG', fun=_cost_function, jac=True,
-        x0=initial_thetas, args=args,
+        x0=initial_thetas, args=(spec, X, y, lmd),
         options={'maxiter': 50, 'disp': True}, callback=_callback)
 
-    theta1, theta2 = reshape_theta(res.x, num_input_unit, num_hidden_unit, num_labels)
-    return theta1, theta2, J_history
+    return res.x, J_history
 
 
-def predict(theta1, theta2, X):
+def predict(thetas, spec, X):
     """
     predict classification
     
     Parameters
     ----------
-    theta1 : array-like, shape (n_hidden_unit, n_dim+1)
-        parameters of input layer
-    theta2 : array-like, shape (n_classes, n_hidden_unit+1)
-        parameters of hidden layer
+    thetas : array-like, num_of_units
+        weights of input and hidden layers
     X : array-like, shape (n_examples, n_dim)
         input dataset
     
@@ -159,10 +151,11 @@ def predict(theta1, theta2, X):
     ypreds : array-like, shape (n_examples, 1)
         prediction classes and values
     """
-    assert(X.shape[1] + 1 == theta1.shape[1])
-    assert(theta1.shape[0] + 1 == theta2.shape[1])
+    assert(X.shape[1] == spec.num_in_units)
 
-    m = X.shape[0]
+    m, n = X.shape
+    theta1, theta2 = divide_weights(thetas, spec)
+
     a1 = np.c_[np.ones((m, 1)), X]
     z2 = np.dot(a1, theta1.T)
     a2 = np.c_[np.ones((m, 1)), sigmoid(z2)]
@@ -192,15 +185,14 @@ def compute_train_accuracy(ypreds, y):
     return np.mean(ypreds.ravel() == y.ravel()) * 100.
 
 
-def compute_numerical_gradient(func, thetas):
+def compute_numerical_gradient(func, thetas, e=1e-4):
     numgrad = np.zeros(thetas.shape)
     perturb = np.zeros(thetas.shape)
-    e = 1e-4
 
     for p in range(len(thetas)):
         perturb[p] = e
-        loss1, d1, d2 = func(thetas - perturb)
-        loss2, d1, d2 = func(thetas + perturb)
+        loss1, d1 = func(thetas - perturb)
+        loss2, d2 = func(thetas + perturb)
         numgrad[p] = (loss2 - loss1) / (2*e)
         perturb[p] = 0
 
